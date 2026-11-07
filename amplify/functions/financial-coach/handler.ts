@@ -1,3 +1,4 @@
+import { ConditionalCheckFailedException, DynamoDBClient, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { Agent, BedrockModel, tool } from '@strands-agents/sdk';
 import { OpenAIModel } from '@strands-agents/sdk/models/openai';
 import { z } from 'zod';
@@ -16,7 +17,43 @@ const MODEL_ID = process.env.COACH_MODEL?.trim() || (PROVIDER === 'bedrock' ? DE
 /** Error de configuración: falta una variable. Se registra el nombre, nunca el valor. */
 class CoachConfigError extends Error {}
 
+/** El usuario ya hizo todas las preguntas permitidas hoy. */
+class CoachLimitError extends Error {}
+
 const env = (name: string) => process.env[name]?.trim() || undefined;
+
+/** Preguntas al Coach por usuario y por día (hora de la Ciudad de México). */
+const DAILY_LIMIT = Math.floor(Number(process.env.COACH_DAILY_LIMIT)) > 0 ? Math.floor(Number(process.env.COACH_DAILY_LIMIT)) : 25;
+const dynamo = new DynamoDBClient({});
+const todayInMexico = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Mexico_City' }).format(new Date());
+
+/**
+ * Suma una pregunta al contador del día de forma atómica y falla si el usuario ya llegó al límite.
+ * Se cuenta antes de llamar al modelo, así los intentos fallidos también cuentan (evita abusos).
+ */
+async function countQuestion(userId: string) {
+  const table = env('COACH_USAGE_TABLE');
+  if (!table) throw new CoachConfigError('Falta la variable COACH_USAGE_TABLE');
+  try {
+    await dynamo.send(
+      new UpdateItemCommand({
+        TableName: table,
+        Key: { pk: { S: `${userId}#${todayInMexico()}` } },
+        UpdateExpression: 'SET expiresAt = :ttl ADD questions :one',
+        ConditionExpression: 'attribute_not_exists(questions) OR questions < :limit',
+        ExpressionAttributeValues: {
+          ':one': { N: '1' },
+          ':limit': { N: String(DAILY_LIMIT) },
+          // Se borra solo a los 2 días (TTL de DynamoDB)
+          ':ttl': { N: String(Math.floor(Date.now() / 1000) + 2 * 86400) },
+        },
+      }),
+    );
+  } catch (err) {
+    if (err instanceof ConditionalCheckFailedException) throw new CoachLimitError();
+    throw err;
+  }
+}
 
 function requireEnv(name: string) {
   const value = env(name);
@@ -118,14 +155,21 @@ export const handler: Schema['askCoach']['functionHandler'] = async (event) => {
     throw new Error('No pude leer tus datos financieros. Recarga la página e intenta de nuevo.');
   }
   const question = (event.arguments.question ?? '').toString().trim().slice(0, 500) || '¿Cómo van mis finanzas?';
+  const userId = event.identity && 'sub' in event.identity ? event.identity.sub : undefined;
+  if (!userId) throw new Error('Inicia sesión para usar el Coach.');
 
   const started = Date.now();
   try {
+    await countQuestion(userId);
     const agent = buildAgent(parsed.data);
     const result = await agent.invoke(question);
     console.log(JSON.stringify({ msg: 'coach_ok', provider: PROVIDER, model: MODEL_ID, ms: Date.now() - started }));
     return result.structuredOutput as z.infer<typeof CoachAnswer>;
   } catch (err) {
+    if (err instanceof CoachLimitError) {
+      console.warn(JSON.stringify({ msg: 'coach_daily_limit', limit: DAILY_LIMIT }));
+      throw new Error(`Llegaste al límite de ${DAILY_LIMIT} preguntas al Coach por hoy. Vuelve mañana.`);
+    }
     const message = err instanceof Error ? err.message : String(err);
     console.error(JSON.stringify({ msg: 'coach_error', provider: PROVIDER, model: MODEL_ID, ms: Date.now() - started, error: message }));
     if (err instanceof CoachConfigError) {

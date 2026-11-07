@@ -16,6 +16,7 @@ Una app web para registrar tus gastos en dos toques, detectar los gastos pequeñ
 [Cómo usarla](#-guía-de-uso) •
 [Tu rutina](#-cómo-aprovecharla-en-tu-día-a-día) •
 [Desplegar con Amplify](#-despliega-tu-propia-copia-con-aws-amplify) •
+[Quién se registra](#-controla-quién-puede-registrarse) •
 [Proveedores de IA](#-elige-el-proveedor-de-ia-del-coach) •
 [Arquitectura](#-arquitectura)
 
@@ -76,9 +77,19 @@ Así se ve la pantalla principal. Los dos botones flotantes están siempre a la 
 ### Paso 1 · Crea tu cuenta
 
 1. En la pantalla de bienvenida, toca **Crear cuenta**.
-2. Escribe tu **correo** y una **contraseña**.
+2. Escribe tu **correo**, una **contraseña** y la **Clave de referido** que te compartió quien administra la app.
 3. Revisa tu correo: te llega un **código de 6 dígitos**. Escríbelo para confirmar que el correo es tuyo.
-4. Listo. Las siguientes veces entras con **correo y contraseña** en la pestaña **Entrar**.
+4. Listo. Las siguientes veces entras con **correo y contraseña** en la pestaña **Entrar** (la clave de referido sólo se pide al crear la cuenta).
+
+```
+┌───────────── Crear cuenta ─────────────┐
+│ Email:              [tu@correo.com]    │
+│ Contraseña:         [••••••••]         │
+│ Confirmar:          [••••••••]         │
+│ Clave de referido:  [HRM-XXXXXXXX]     │ ← sin ella no se crea la cuenta
+│            [ Crear cuenta ]            │
+└────────────────────────────────────────┘
+```
 
 > [!TIP]
 > ¿Olvidaste tu contraseña? Toca **¿Olvidaste tu contraseña?** y te llegará otro código al correo para crear una nueva.
@@ -260,6 +271,9 @@ La respuesta llega como una tarjeta:
 
 El estado puede ser **excelente**, **bien**, **atención** o **riesgo**. El Coach recuerda sus consejos anteriores y en la siguiente consulta te dice si mejoraste.
 
+> [!NOTE]
+> Cada cuenta puede hacer **25 preguntas al Coach por día** (el contador se reinicia a medianoche, hora de la Ciudad de México). Al llegar al límite verás: *"Llegaste al límite de 25 preguntas al Coach por hoy. Vuelve mañana."*
+
 > [!IMPORTANT]
 > El Coach da **orientación general, no asesoría financiera profesional**. Las calculadoras son estimaciones.
 
@@ -287,6 +301,7 @@ Cada persona despliega la app **en su propia cuenta de AWS**: los usuarios, los 
 
 - Una [cuenta de AWS](https://aws.amazon.com/).
 - Una cuenta de GitHub.
+- Una **clave de referido** para controlar quién se registra (ver [Controla quién puede registrarse](#-controla-quién-puede-registrarse)).
 - Un proveedor de IA para el Coach: **Amazon Bedrock** (por defecto, sin claves) u otro de la [tabla de proveedores](#-elige-el-proveedor-de-ia-del-coach).
 
 ```mermaid
@@ -303,7 +318,7 @@ flowchart LR
 2. En la [consola de AWS Amplify](https://console.aws.amazon.com/amplify/), elige la región y toca **Create new app** → **GitHub**.
    > Si vas a usar **Bedrock**, elige **us-east-1**, **us-east-2** o **us-west-2**: el Coach usa perfiles de inferencia de EE. UU. (`us.*`).
 3. Autoriza a Amplify, elige tu fork y la rama `main`. Amplify detecta el archivo `amplify.yml` del repositorio, que despliega el backend y el frontend.
-4. En **Advanced settings → Environment variables**, agrega las variables del Coach (ver [proveedores](#-elige-el-proveedor-de-ia-del-coach)). Si usarás Bedrock con el modelo por defecto, puedes omitir este paso.
+4. En **Advanced settings → Environment variables**, agrega `SIGNUP_REFERRAL_CODE` con tu clave de referido y, si no usarás Bedrock, las variables del Coach (ver [proveedores](#-elige-el-proveedor-de-ia-del-coach)).
 5. Toca **Save and deploy**. Cuando termine, abre la URL `https://main.<id>.amplifyapp.com`.
 
 **Para cambiar de proveedor después:** ve a tu app → **Hosting → Environment variables**, edita las variables y vuelve a desplegar (**Redeploy this version**). Las variables se leen al desplegar, no en cada pregunta.
@@ -318,8 +333,8 @@ git clone https://github.com/<tu-usuario>/gastos-hormiga-app.git
 cd gastos-hormiga-app
 npm ci
 
-# 2. Configura el Coach
-cp .env.example .env        # edita .env con tu proveedor y tus claves
+# 2. Configura la app
+cp .env.example .env        # edita .env: clave de referido, proveedor de IA y sus claves
 
 # 3. Despliega tu backend personal en AWS (Cognito, AppSync, DynamoDB, Lambda)
 npx ampx sandbox --once     # genera amplify_outputs.json
@@ -335,9 +350,59 @@ Para borrar ese backend: `npx ampx sandbox delete`.
 
 ### Recomendaciones para tu despliegue
 
-- **Crea una alerta de presupuesto** en [AWS Budgets](https://console.aws.amazon.com/billing/home#/budgets) para que te avise si el gasto sube.
-- **El registro es abierto:** cualquiera con la URL de tu app puede crear una cuenta y usar el Coach con **tus** créditos de IA. Si la app es sólo para ti o tu familia, desactiva el auto-registro (*self-registration*) en la configuración de tu user pool de Amazon Cognito y crea las cuentas tú.
+- **Crea una alerta de presupuesto** en [AWS Budgets](https://console.aws.amazon.com/billing/home#/budgets) para que te avise por correo si el gasto sube (los dos primeros presupuestos son gratis).
+- **Pon un tope de gasto en tu proveedor de IA** (límite de créditos por clave en OpenRouter, presupuesto en Google Cloud para Gemini).
 - Para borrar todo: en la consola de Amplify, abre tu app → **App settings → General settings → Delete app**.
+
+---
+
+## 🔑 Controla quién puede registrarse
+
+Sin protección, cualquiera con la URL de tu app podría crear cuentas y usar el Coach con **tus** créditos de IA. Gastos Hormiga incluye dos candados que no tienen costo mensual:
+
+```mermaid
+flowchart LR
+    A[Persona o bot] -->|Crear cuenta| B{¿Clave de<br/>referido válida?}
+    B -->|No| X[❌ Cuenta rechazada]
+    B -->|Sí| C[✅ Cuenta creada]
+    C -->|Pregunta al Coach| D{¿Menos de 25<br/>preguntas hoy?}
+    D -->|No| Y[⏸️ Vuelve mañana]
+    D -->|Sí| E[✨ Respuesta]
+```
+
+### 1 · Clave de referido
+
+Al crear una cuenta se pide una **Clave de referido**. Un trigger de Cognito (*Pre sign-up*) la compara **en el servidor** con la variable `SIGNUP_REFERRAL_CODE`; si no coincide, la cuenta no se crea. No se puede saltar desde el navegador y la clave nunca se guarda en el perfil del usuario.
+
+```dotenv
+# .env
+SIGNUP_REFERRAL_CODE=HRM-TU-CLAVE
+```
+
+- No distingue mayúsculas ni espacios al inicio o al final.
+- Si la dejas **vacía**, el registro queda abierto y el campo no aparece en la pantalla.
+- Las cuentas que crees tú desde la consola de Cognito no necesitan clave.
+
+**Genera una clave aleatoria:**
+
+```bash
+node -e "console.log('HRM-'+require('crypto').randomBytes(6).toString('base64url').toUpperCase())"
+```
+
+### 2 · Rota la clave si se filtra
+
+Si compartiste la clave de más o sospechas que se filtró, cámbiala. **La anterior deja de funcionar al instante del redespliegue**; las cuentas ya creadas no se ven afectadas.
+
+```bash
+# Opción B (CLI): edita SIGNUP_REFERRAL_CODE en .env y vuelve a desplegar
+npx ampx sandbox --once
+```
+
+En la Opción A (consola), edita `SIGNUP_REFERRAL_CODE` en **Hosting → Environment variables** y toca **Redeploy this version**.
+
+### 3 · Límite diario del Coach
+
+Cada cuenta puede hacer **25 preguntas al día** (cambia el número con `COACH_DAILY_LIMIT`). El contador vive en una tabla de DynamoDB a la que sólo la Lambda del Coach puede escribir, se actualiza de forma atómica y sus registros se borran solos a los dos días. Los intentos fallidos también cuentan, para que nadie pueda forzar llamadas sin límite.
 
 ---
 
@@ -421,6 +486,8 @@ sequenceDiagram
 
 - **Autorización por dueño:** cada modelo de datos usa `allow.owner()`. Un usuario no puede leer ni modificar registros de otro.
 - **Sin acceso de invitados:** el Identity Pool no permite usuarios no autenticados.
+- **Registro controlado:** un trigger *Pre sign-up* de Cognito exige la clave de referido (comparación en tiempo constante, en el servidor).
+- **Límite de uso del Coach:** 25 preguntas por usuario al día, contadas de forma atómica en DynamoDB.
 - **El Coach sólo ve tus datos:** la app envía una foto de *tus* registros; la Lambda no consulta la base de datos.
 - **Permisos mínimos en Bedrock:** el rol de la Lambda sólo puede invocar modelos `amazon.nova-*` y `anthropic.claude-*`.
 - **Claves fuera del código:** las claves de proveedores van en `.env` (ignorado por git) o en la consola de Amplify.
@@ -430,8 +497,11 @@ sequenceDiagram
 ```
 gastos-hormiga-app/
 ├── amplify/                         # Backend como código (Amplify Gen 2)
-│   ├── backend.ts                   # Une auth + data + Lambda; permisos de Bedrock
-│   ├── auth/resource.ts             # Cognito: login con correo y código de verificación
+│   ├── backend.ts                   # Une auth + data + Lambda; permisos de Bedrock; tabla del límite diario
+│   ├── env.ts                       # Lee .env al desplegar con la CLI
+│   ├── auth/
+│   │   ├── resource.ts              # Cognito: login con correo y código de verificación
+│   │   └── pre-sign-up/             # Trigger que valida la clave de referido
 │   ├── data/resource.ts             # Esquema GraphQL y reglas de autorización
 │   └── functions/financial-coach/
 │       ├── resource.ts              # Config de la Lambda; lee .env / variables de entorno

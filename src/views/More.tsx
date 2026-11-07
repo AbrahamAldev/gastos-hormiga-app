@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from 'react';
+import { useEffect, useState, type ChangeEvent } from 'react';
 import { client, type UserData } from '../store';
 import { cardPayoff, daysBetween, fmt, hoursText, parseDate, prettyDate, realYield, subMonthly, sum, today, type Period } from '../lib';
 import { Empty, Segmented } from '../ui';
@@ -127,7 +127,18 @@ function Subs({ data }: { data: UserData }) {
 
 const WAIT_H = 48;
 
+/** Hora actual guardada en estado y refrescada cada minuto: el render se mantiene puro y la cuenta regresiva avanza sola. */
+function useNow(intervalMs = 60_000) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), intervalMs);
+    return () => clearInterval(id);
+  }, [intervalMs]);
+  return now;
+}
+
 function Wishes({ data }: { data: UserData }) {
+  const now = useNow();
   const cur = data.profile?.currency ?? 'MXN';
   const [name, setName] = useState('');
   const [price, setPrice] = useState('');
@@ -174,7 +185,8 @@ function Wishes({ data }: { data: UserData }) {
       ) : (
         <div className="stack">
           {waiting.map((w) => {
-            const hrs = (Date.now() - new Date(w.createdAt ?? Date.now()).getTime()) / 3600000;
+            const created = w.createdAt ? new Date(w.createdAt).getTime() : now;
+            const hrs = (now - created) / 3600000;
             const left = Math.max(0, WAIT_H - hrs);
             const ready = left === 0;
             return (

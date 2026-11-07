@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Authenticator, useTheme, View } from '@aws-amplify/ui-react';
+import { Authenticator, TextField, useAuthenticator, useTheme, View } from '@aws-amplify/ui-react';
+import { signUp, type SignUpInput } from 'aws-amplify/auth';
+import outputs from '../amplify_outputs.json';
 import { client, useUserData, type UserData } from './store';
 import { ANT_PRONE, CATEGORIES, MOODS, catOf, fmt, hoursText, today, type Period } from './lib';
 import { Segmented, Sheet } from './ui';
@@ -24,13 +26,69 @@ const authComponents = {
   Footer() {
     return <p className="auth-foot">Tus datos son privados: sólo tú puedes verlos.</p>;
   },
+  SignUp: {
+    FormFields() {
+      const { validationErrors } = useAuthenticator();
+      const error = validationErrors[REFERRAL_FIELD];
+      return (
+        <>
+          <Authenticator.SignUp.FormFields />
+          {REFERRAL_REQUIRED && (
+            <TextField
+              name={REFERRAL_FIELD}
+              label="Clave de referido"
+              placeholder="La clave que te compartieron"
+              autoComplete="off"
+              hasError={!!error}
+              errorMessage={Array.isArray(error) ? error.join(' ') : error}
+            />
+          )}
+        </>
+      );
+    },
+  },
+};
+
+/**
+ * Clave de referido: el backend la exige si SIGNUP_REFERRAL_CODE está configurada (ver .env.example).
+ * El campo se llama "custom:..." porque Amplify UI sólo reenvía esos campos; antes de llamar a Cognito
+ * se saca de los atributos del usuario y se envía como validationData (no se guarda en la cuenta).
+ */
+const REFERRAL_FIELD = 'custom:referral_code';
+const REFERRAL_REQUIRED = (outputs as { custom?: { signupReferralRequired?: boolean } }).custom?.signupReferralRequired === true;
+
+const authServices = {
+  async validateCustomSignUp(formData: Record<string, string>) {
+    if (REFERRAL_REQUIRED && !formData[REFERRAL_FIELD]?.trim()) {
+      return { [REFERRAL_FIELD]: 'Escribe la clave de referido que te compartieron.' };
+    }
+  },
+  async handleSignUp(input: SignUpInput) {
+    const { [REFERRAL_FIELD]: referralCode, ...userAttributes } = input.options?.userAttributes ?? {};
+    try {
+      return await signUp({
+        ...input,
+        options: {
+          ...input.options,
+          userAttributes,
+          validationData: referralCode ? { referralCode: String(referralCode).trim() } : undefined,
+        },
+      });
+    } catch (err) {
+      // Cognito antepone "PreSignUp failed with error" al mensaje del trigger; mostramos sólo el mensaje.
+      if (err instanceof Error && err.message.startsWith('PreSignUp failed with error')) {
+        throw new Error(err.message.replace(/^PreSignUp failed with error\s*/, ''));
+      }
+      throw err;
+    }
+  },
 };
 
 export default function App() {
   return (
     <>
       <Backdrop />
-      <Authenticator components={authComponents} loginMechanisms={['email']}>
+      <Authenticator components={authComponents} services={authServices} loginMechanisms={['email']}>
         {({ signOut, user }) => <Main signOut={signOut} email={user?.signInDetails?.loginId ?? ''} />}
       </Authenticator>
     </>
