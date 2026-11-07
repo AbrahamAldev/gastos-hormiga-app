@@ -345,6 +345,22 @@ npm run dev                 # http://localhost:5173
 
 Para borrar ese backend: `npx ampx sandbox delete`.
 
+#### Opciones útiles y problemas comunes
+
+Cada vez que cambies tu `.env` (proveedor de IA, modelo, claves o clave de referido), vuelve a desplegar para que AWS reciba los valores nuevos. Según tu entorno, quizá necesites agregar algunas opciones al comando:
+
+```bash
+NODE_OPTIONS=--no-experimental-webstorage AWS_REGION=<tu-región> npx ampx sandbox --once --identifier <nombre-de-tu-backend>
+```
+
+| Opción | Cuándo usarla |
+|---|---|
+| `NODE_OPTIONS=--no-experimental-webstorage` | Si usas **Node.js 25 o más reciente** y el despliegue falla con `TypeError: localStorage.getItem is not a function`. Otra solución es usar Node.js 22 LTS. |
+| `AWS_REGION=<tu-región>` | Si tu perfil de AWS apunta a otra región o tu organización sólo permite algunas. Con **Bedrock**, usa `us-east-1`, `us-east-2` o `us-west-2`. Usa **siempre la misma región**: en otra se crearía un backend nuevo. |
+| `--identifier <nombre>` | Para darle un nombre fijo a tu backend. Sin esta opción, Amplify usa el usuario de tu computadora; si despliegas desde otra máquina, crearía un backend nuevo y vacío. Usa el mismo nombre en `npx ampx sandbox delete --identifier <nombre>`. |
+
+Sabrás que el despliegue terminó bien cuando veas `✔ Deployment completed`. Si sólo cambiaste variables del Coach, no necesitas volver a publicar el frontend.
+
 > [!WARNING]
 > **Nunca subas tu `.env` a GitHub.** Ya está incluido en `.gitignore`. Si una clave se filtra, revócala en el panel de tu proveedor y genera otra.
 
@@ -397,6 +413,8 @@ Si compartiste la clave de más o sospechas que se filtró, cámbiala. **La ante
 # Opción B (CLI): edita SIGNUP_REFERRAL_CODE en .env y vuelve a desplegar
 npx ampx sandbox --once
 ```
+
+Si al desplegar usas opciones como `--identifier` o `AWS_REGION`, repítelas aquí (ver [Opciones útiles y problemas comunes](#opciones-útiles-y-problemas-comunes)).
 
 En la Opción A (consola), edita `SIGNUP_REFERRAL_CODE` en **Hosting → Environment variables** y toca **Redeploy this version**.
 
