@@ -408,13 +408,13 @@ Cada cuenta puede hacer **25 preguntas al día** (cambia el número con `COACH_D
 
 ## 🤖 Elige el proveedor de IA del Coach
 
-El Coach puede usar **Amazon Bedrock** (por defecto) o cualquier API **compatible con OpenAI**. Se configura con variables de entorno: en el archivo `.env` (Opción B) o en la consola de Amplify (Opción A). Revisa [`.env.example`](.env.example) para ver todas.
+El Coach puede usar **Amazon Bedrock** (por defecto), **Google Gemini** o cualquier API **compatible con OpenAI**. Se configura con variables de entorno: en el archivo `.env` (Opción B) o en la consola de Amplify (Opción A). Revisa [`.env.example`](.env.example) para ver todas.
 
 | Proveedor | `COACH_PROVIDER` | Variables obligatorias | Notas |
 |---|---|---|---|
 | **Amazon Bedrock** | `bedrock` *(por defecto)* | Ninguna | Sin claves: usa el rol IAM de la Lambda. Modelo por defecto: `us.amazon.nova-lite-v1:0`. Activa el modelo en la consola de Bedrock de tu cuenta. |
 | **OpenRouter** | `openrouter` | `OPENROUTER_API_KEY`, `COACH_MODEL` | Acceso a cientos de modelos con una sola clave. |
-| **Google AI Studio (Gemini)** | `gemini` | `GEMINI_API_KEY`, `COACH_MODEL` | Usa el endpoint compatible con OpenAI de Gemini. |
+| **Google AI Studio (Gemini)** | `gemini` | `GEMINI_API_KEY`, `COACH_MODEL` | Usa la API nativa de Gemini. Probado con `gemini-3.5-flash-lite` (económico y con plan gratuito). Escribe el nombre sin el prefijo `models/`. |
 | **Ollama** | `ollama` | `OLLAMA_BASE_URL`, `COACH_MODEL` | La URL debe ser accesible desde internet y terminar en `/v1`. `localhost` no funciona porque el Coach corre en AWS Lambda. |
 | **OpenAI o compatible** | `openai` | `OPENAI_API_KEY`, `COACH_MODEL` | Con `OPENAI_BASE_URL` puedes apuntar a otra API compatible (Groq, DeepSeek, Together…). |
 

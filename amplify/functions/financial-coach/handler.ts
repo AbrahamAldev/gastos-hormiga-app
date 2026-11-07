@@ -1,5 +1,6 @@
 import { ConditionalCheckFailedException, DynamoDBClient, UpdateItemCommand } from '@aws-sdk/client-dynamodb';
 import { Agent, BedrockModel, tool } from '@strands-agents/sdk';
+import { GoogleModel } from '@strands-agents/sdk/models/google';
 import { OpenAIModel } from '@strands-agents/sdk/models/openai';
 import { z } from 'zod';
 import type { Schema } from '../../data/resource';
@@ -8,7 +9,8 @@ import { financialSummary, projectScenarios, ScenarioInput, SnapshotSchema, type
 /**
  * Proveedor de IA del Coach. Se elige con variables de entorno (ver .env.example):
  * - bedrock (por defecto): Amazon Bedrock con el rol IAM de la Lambda, sin claves.
- * - openrouter, gemini, ollama, openai: cualquier API compatible con OpenAI.
+ * - gemini: API nativa de Google AI Studio.
+ * - openrouter, ollama, openai: cualquier API compatible con OpenAI.
  */
 const PROVIDER = (process.env.COACH_PROVIDER ?? 'bedrock').trim().toLowerCase();
 const DEFAULT_BEDROCK_MODEL = 'us.amazon.nova-lite-v1:0';
@@ -66,8 +68,6 @@ function openAICompatibleSettings(): { baseURL?: string; apiKey: string } {
   switch (PROVIDER) {
     case 'openrouter':
       return { baseURL: 'https://openrouter.ai/api/v1', apiKey: requireEnv('OPENROUTER_API_KEY') };
-    case 'gemini':
-      return { baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/', apiKey: requireEnv('GEMINI_API_KEY') };
     case 'ollama':
       // Ollama no exige clave, pero el cliente de OpenAI necesita un valor.
       return { baseURL: requireEnv('OLLAMA_BASE_URL'), apiKey: env('OLLAMA_API_KEY') ?? 'ollama' };
@@ -83,6 +83,13 @@ function buildModel() {
   const common = { maxTokens: 1500, temperature: 0.2 };
   if (PROVIDER === 'bedrock') {
     return new BedrockModel({ region: process.env.AWS_REGION ?? 'us-east-2', modelId: MODEL_ID, ...common });
+  }
+  if (PROVIDER === 'gemini') {
+    // API nativa: el endpoint compatible con OpenAI de Gemini omite el campo "index" en las
+    // llamadas a herramientas en streaming y el agente las descartaría.
+    const apiKey = requireEnv('GEMINI_API_KEY');
+    if (!MODEL_ID) throw new CoachConfigError('Falta la variable COACH_MODEL para COACH_PROVIDER=gemini');
+    return new GoogleModel({ apiKey, modelId: MODEL_ID, params: { temperature: common.temperature, maxOutputTokens: common.maxTokens } });
   }
   const { baseURL, apiKey } = openAICompatibleSettings();
   if (!MODEL_ID) throw new CoachConfigError(`Falta la variable COACH_MODEL para COACH_PROVIDER=${PROVIDER}`);
