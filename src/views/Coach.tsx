@@ -163,7 +163,7 @@ export function CoachSheet({ data, open, onClose }: { data: UserData; open: bool
             </div>
           </div>
 
-          <p className="hint">Generado con IA (Amazon Nova en Bedrock) a partir de tus registros. Es orientación, no asesoría financiera profesional.</p>
+          <p className="hint">Generado con IA a partir de tus registros. Es orientación, no asesoría financiera profesional.</p>
           <button className="btn ghost block" onClick={reset}>
             Hacer otra pregunta
           </button>

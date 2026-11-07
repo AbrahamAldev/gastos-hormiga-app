@@ -1,5 +1,5 @@
 {
-  "name": "amplify-vite-react-template",
+  "name": "gastos-hormiga-app",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -15,6 +15,7 @@
     "@smithy/types": "^4.20.0",
     "@strands-agents/sdk": "^1.24.0",
     "aws-amplify": "~6.15.10",
+    "openai": "^6.49.0",
     "react": "~18.3.1",
     "react-dom": "~18.3.1",
     "zod": "^4.6.7"

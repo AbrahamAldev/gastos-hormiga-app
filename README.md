@@ -1,188 +1,467 @@
-# 🐜 Hormiga — Control de gastos hormiga
+<div align="center">
 
-**Hormiga** es una app web para descubrir a dónde se va tu dinero, detectar los gastos pequeños y frecuentes que casi nunca notas (los "gastos hormiga") y recuperarlos. Incluye un **Coach con IA** que analiza tus propios números y te da consejos concretos.
+# 🐜 Gastos Hormiga
 
-> Tus datos son privados: cada persona sólo puede ver y editar sus propios registros.
+**Descubre a dónde se va tu dinero y recupéralo.**
+
+Una app web para registrar tus gastos en dos toques, detectar los gastos pequeños que se repiten (los *gastos hormiga*) y recibir consejos de un Coach con IA basados en tus propios números.
+
+![React](https://img.shields.io/badge/React_18-20232A?style=flat-square&logo=react&logoColor=61DAFB)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)
+![AWS Amplify](https://img.shields.io/badge/AWS_Amplify_Gen_2-FF9900?style=flat-square&logo=awsamplify&logoColor=white)
+![Amazon Bedrock](https://img.shields.io/badge/Amazon_Bedrock-232F3E?style=flat-square&logo=amazonaws&logoColor=FF9900)
+![Strands Agents](https://img.shields.io/badge/Strands_Agents-6366F1?style=flat-square)
+![License](https://img.shields.io/badge/license-MIT--0-green?style=flat-square)
+
+[Cómo usarla](#-guía-de-uso) •
+[Tu rutina](#-cómo-aprovecharla-en-tu-día-a-día) •
+[Desplegar con Amplify](#-despliega-tu-propia-copia-con-aws-amplify) •
+[Proveedores de IA](#-elige-el-proveedor-de-ia-del-coach) •
+[Arquitectura](#-arquitectura)
+
+</div>
 
 ---
 
-## Índice
+## 💡 ¿Qué es un gasto hormiga?
 
-1. [Para cualquier persona (sin tecnicismos)](#1-para-cualquier-persona-sin-tecnicismos)
-2. [Para usuarios técnicos: funciones en detalle](#2-para-usuarios-técnicos-funciones-en-detalle)
-3. [Para desarrolladores: arquitectura y despliegue](#3-para-desarrolladores-arquitectura-y-despliegue)
+Son gastos chicos que se repiten sin que lo notes: el café de cada mañana, el antojo en la tiendita, el delivery "porque no hay nada en casa". Uno solo parece poca cosa, pero juntos se comen tu quincena.
+
+```
+☕ $55 al día  ×  365 días  =  $20,075 al año
+                            ≈  178 horas de tu trabajo (con un ingreso de $18,000 / 160 h al mes)
+```
+
+Gastos Hormiga hace esa cuenta **con tus datos reales**, sin conectar tu banco.
 
 ---
 
-## 1. Para cualquier persona (sin tecnicismos)
+## 📱 Guía de uso
 
-### ¿Qué es un gasto hormiga?
-Son gastos chicos que se repiten: el café de cada mañana, un antojo en la tienda, un delivery "porque no hay nada en casa". Cada uno parece poca cosa, pero al año pueden sumar miles de pesos. Hormiga te muestra cuánto suman **en tu caso**.
+### El mapa de la app
 
-### ¿Cómo empiezo?
-1. **Crea tu cuenta** con tu correo. Te llegará un **código de 6 dígitos** para confirmar que el correo es tuyo. Ese código es la única forma de entrar, no hay contraseña que recordar.
-2. **Completa el registro inicial**: tu nombre, tu ingreso mensual aproximado, cada cuánto te pagan (semanal, quincenal o mensual) y tu **umbral hormiga**, es decir, a partir de qué monto un gasto se considera "hormiga" (por defecto, $100).
-3. **Registra tus gastos** con el botón **+** que aparece en la parte inferior. Con tus favoritos (los gastos que más repites), registrar uno toma sólo dos toques.
+```mermaid
+flowchart LR
+    A([🔐 Entrar / Crear cuenta]) --> B([📝 Configuración inicial])
+    B --> C{{Pantalla principal}}
+    C --> D[◎ Inicio]
+    C --> E[≡ Gastos]
+    C --> F[🐜 Hormiga]
+    C --> G[◔ Plan]
+    C --> H[••• Más]
+    C -.-> I((＋ Registrar gasto))
+    C -.-> J((✨ Coach))
+```
 
-### Las 5 pantallas principales
+Así se ve la pantalla principal. Los dos botones flotantes están siempre a la mano, sin importar la pestaña:
 
-| Pestaña | Para qué sirve |
+```
+┌──────────────────────────────────┐
+│  Hola, Ana                       │
+│                                  │
+│      (contenido de la pestaña)   │
+│                                  │
+│                        ┌──────┐  │
+│                        │✨Coach│ ← pregunta a tu Coach con IA
+│                        └──────┘  │
+│                           ( + )  │ ← registra un gasto
+├──────────────────────────────────┤
+│  ◎      ≡      🐜      ◔    •••  │
+│Inicio Gastos Hormiga  Plan  Más  │ ← barra de pestañas
+└──────────────────────────────────┘
+```
+
+---
+
+### Paso 1 · Crea tu cuenta
+
+1. En la pantalla de bienvenida, toca **Crear cuenta**.
+2. Escribe tu **correo** y una **contraseña**.
+3. Revisa tu correo: te llega un **código de 6 dígitos**. Escríbelo para confirmar que el correo es tuyo.
+4. Listo. Las siguientes veces entras con **correo y contraseña** en la pestaña **Entrar**.
+
+> [!TIP]
+> ¿Olvidaste tu contraseña? Toca **¿Olvidaste tu contraseña?** y te llegará otro código al correo para crear una nueva.
+
+> [!NOTE]
+> Tus datos son privados: cada cuenta sólo puede ver y editar sus propios registros.
+
+---
+
+### Paso 2 · Configuración inicial (sólo una vez)
+
+La pantalla **"Hola, empecemos"** te pide unos datos para que la app calcule cuánto te cuesta cada hábito **en horas de tu vida**. Todo se puede cambiar después en **Más → Perfil**.
+
+| Campo | Qué escribir | Para qué se usa |
+|---|---|---|
+| **¿Cómo te llamas?** | Tu nombre o apodo | Para saludarte |
+| **Ingreso mensual aproximado** | Lo que ganas al mes, en pesos | Calcular cuánto tienes disponible |
+| **Tu ingreso es…** | `Fijo` o `Variable / freelance` | Con ingreso variable, la app usa lo que registres como ingreso real |
+| **Te pagan / te organizas por** | `Semana`, `Quincena` o `Mes` | Define tu "periodo" de presupuesto |
+| **Horas trabajadas al mes** | Por defecto 160 | Convertir dinero en horas de trabajo |
+| **% para ahorrar primero** | Por defecto 10% | Separar tu ahorro antes de gastar |
+| **Un gasto "hormiga" es menor a…** | Por defecto $100 | Umbral para detectar gastos hormiga |
+
+Toca **Comenzar** y llegas a la pantalla principal.
+
+---
+
+### Paso 3 · Registra un gasto en 2 toques
+
+Toca el botón **＋**. Se abre la hoja **Nuevo gasto**:
+
+```
+┌──────────────── Nuevo gasto ────────────────┐
+│ [☕ Café · $55] [🏪 OXXO · $40] [🛵 …]       │ ← favoritos: un toque y se guarda
+│                                             │
+│              $ 85                           │ ← monto
+│         ⏳ = 45 min de trabajo              │
+│                                             │
+│ [☕ Café] [🍩 Antojos] [🛵 Delivery] [🛒 Súper]│ ← categoría
+│ Dónde: [Starbucks]   Fecha: [hoy]           │
+│ ¿Qué tan necesario fue?                     │
+│   ( Necesario | Gusto | 🐜 Hormiga )         │
+│ ¿Cómo te sentías? (opcional)                │
+│   [😊 Feliz] [😩 Estrés] [🥱 Aburrimiento]…  │
+│ Nota: [opcional]                            │
+│                                             │
+│            [ Guardar gasto ]                │
+└─────────────────────────────────────────────┘
+```
+
+| Elemento | Qué hace |
 |---|---|
-| **◎ Inicio** | Un resumen de tu periodo actual: cuánto llevas gastado, cuánto te queda, y "Para ti", una lista de consejos según tus datos. |
-| **≡ Gastos** | Todos tus movimientos (gastos e ingresos), con filtros por categoría y tipo. Aquí también puedes registrar ingresos. |
-| **🐜 Hormiga** | El detector: los hábitos que más dinero se llevan en los últimos 30 días, cuánto cuestan al año y en horas de trabajo. |
-| **◔ Plan** | Presupuestos mensuales por categoría, metas de ahorro (como un fondo de emergencia) y su avance. |
-| **••• Más** | Suscripciones, lista de antojos en espera (regla de las 48 horas), calculadoras y tu perfil. |
-
-Además, el botón **Coach** flota en la pantalla. Al tocarlo, el Coach Hormiga revisa tus números y te da un diagnóstico, logros, alertas, consejos pequeños para esta semana y proyecciones a 12 meses.
-
-### Ideas que la app usa
-- **Regla de las 48 horas:** cuando sientas ganas de comprar algo por impulso, anótalo en *Más → Antojos* y espera dos días. Muchas veces ya no lo quieres.
-- **Págate primero:** la app calcula una meta de ahorro (un porcentaje de tu ingreso del periodo) para que la veas antes de gastar.
-- **Detonantes emocionales:** al registrar un gasto puedes marcar cómo te sentías (estrés, aburrimiento, tristeza...). Así ves qué emociones te llevan a gastar.
-
-### Aviso
-La app y el Coach dan **orientación general, no asesoría financiera profesional**. Las calculadoras son estimaciones.
+| **Favoritos** (fila de arriba) | Tus combinaciones más repetidas. Un toque y el gasto queda guardado. Al principio verás ejemplos (Café, OXXO, Delivery, Uber). |
+| **Monto** | Al escribirlo, la app te dice cuántas horas de trabajo te cuesta. |
+| **Categoría** | 14 opciones: Café, Antojos, Delivery, Tiendita/OXXO, Comida, Súper, Transporte, Hogar y servicios, Salud, Ocio, Ropa, Apps y juegos, Pago de deuda y Otros. Al elegirla, la app propone si fue *Necesario* o *Gusto*. |
+| **¿Qué tan necesario fue?** | `Necesario`, `Gusto` o `🐜 Hormiga`. Si no lo marcas como hormiga, la app lo detecta sola cuando el monto es menor a tu umbral. |
+| **¿Cómo te sentías?** | Opcional. Con esto la app descubre qué emociones te llevan a gastar (tus *detonantes*). |
 
 ---
 
-## 2. Para usuarios técnicos: funciones en detalle
+### Recorrido por las pestañas
 
-### Registro y gastos
-- **Gasto:** monto, categoría (14 categorías predefinidas, p. ej. Café, Delivery, Súper, Transporte), comercio, nota, fecha, **necesidad** (`necesario`, `deseo` o `hormiga`) y **emoción** (detonante).
-- **Clasificación automática:** si no marcas la necesidad, un gasto cuenta como hormiga cuando su monto es menor o igual al **umbral hormiga** del perfil. Si lo marcas explícitamente, manda tu marca.
-- **Favoritos:** se calculan a partir de tu historial (combinaciones categoría + comercio + monto más repetidas) para registrar en dos toques.
-- **Ingresos:** monto, fuente y fecha. Con ingreso **variable**, el presupuesto se calcula con lo que realmente cobraste en el periodo.
+<details open>
+<summary><b>◎ Inicio: tu resumen del periodo</b></summary>
 
-### Presupuestos
-Un tope mensual por categoría. La app avisa al llegar al **80%** y al **100%** del límite.
+<br>
 
-### Detector de gastos hormiga
-Agrupa los gastos hormiga de los últimos **30 días** por comercio (o por categoría si no hay comercio) y muestra los 5 principales con:
-- veces que lo hiciste y cuánto gastaste,
-- costo estimado **al año** (`total_30_días × 365 / 30`),
-- **horas de trabajo al año** que equivalen, usando tu ingreso mensual y tus horas de trabajo al mes.
-
-Un hábito aparece si se repite **3 o más veces**, o **2 veces** si pertenece a una categoría propensa (café, antojos, delivery, tienda, apps, ocio).
-
-### Metas de ahorro
-Nombre, emoji, monto objetivo, fecha opcional y tipo (meta, emergencia o deuda). La app calcula cuánto necesitas ahorrar por mes para llegar a tiempo y cuántos meses tardarías al ritmo actual. Puedes abonar a cada meta.
-
-### Suscripciones
-Lista de cargos recurrentes (mensual, anual o semanal). La app las suma en tu gasto mensual equivalente y te señala las que no has usado en más de **30 días**, con la fecha de su próximo cobro.
-
-### Antojos (regla de 48 h)
-Lista de cosas que quieres comprar. Cada una queda en estado *esperando*; puedes marcarla como *comprada* o *descartada*. Lo que descartas cuenta como dinero que no gastaste.
-
-### Calculadoras
-- **Pago mínimo de tarjeta:** cuánto cuesta pagar sólo el mínimo frente a un pago fijo. Es una estimación: incluye IVA sobre intereses y toma como mínimo el interés del mes más 1.5% de la deuda.
-- **¿Tu dinero crece o se encoge?:** compara el rendimiento de tu ahorro con la inflación.
-
-### Coach Hormiga (IA)
-1. La app arma una **foto** de tus datos del usuario: periodo actual, tendencia de 3 meses, hábitos, presupuestos, metas, suscripciones, antojos, detonantes y consejos anteriores.
-2. Esa foto se envía a una función de servidor, que la valida con un esquema estricto (límites de tamaño y tipos de datos).
-3. Un **agente** (Strands Agents) corre sobre **Amazon Nova Lite** en Amazon Bedrock. El modelo **no hace cuentas por su cuenta**: pide dos herramientas deterministas, `obtener_resumen_financiero` y `proyectar_escenarios`, y sólo interpreta sus resultados.
-4. La respuesta sale como JSON estructurado (estado, titular, logros, alertas, consejos, dos proyecciones y seguimiento de consejos previos), que la interfaz pinta como tarjetas.
-5. Los consejos anteriores se guardan en tu perfil, así que en la siguiente consulta el Coach puede decirte si mejoraste.
-
-**Límites conocidos:** la función tiene un timeout de 30 segundos (AppSync corta las respuestas a esa altura) y el servidor recorta la pregunta libre a 500 caracteres.
-
-### Privacidad y seguridad
-- Todas las tablas usan autorización `owner`: cada usuario sólo accede a sus registros.
-- No hay acceso de invitados: para leer o escribir datos hay que iniciar sesión.
-- La Lambda del Coach sólo puede invocar modelos Nova y Claude en Bedrock; no lee datos de otros usuarios.
-
----
-
-## 3. Para desarrolladores: arquitectura y despliegue
-
-### Stack
-| Capa | Tecnología |
+| Lo que ves | Qué significa |
 |---|---|
-| Frontend | React 18 + Vite + TypeScript, componentes de `@aws-amplify/ui-react` |
-| Backend | AWS Amplify Gen 2 (definido como código en TypeScript con CDK por debajo) |
-| Autenticación | Amazon Cognito, login por correo con código (`verificationEmailStyle: 'CODE'`) |
-| API y datos | AWS AppSync (GraphQL) + Amazon DynamoDB (modelos generados desde el esquema) |
-| IA | Función Lambda de Node 22 + `@strands-agents/sdk` + Amazon Bedrock (Nova Lite por defecto) |
-| Validación | Zod (esquemas del snapshot y de la respuesta del Coach) |
-| Hosting | Amplify Hosting (frontend estático desde `dist/`) |
+| **Disponible** | Lo que te queda en este periodo (semana, quincena o mes). |
+| **Gastado** | Lo que llevas gastado en el periodo. |
+| **Por día (quedan N)** | Cuánto puedes gastar al día para no pasarte. |
+| **Ahorro primero (10%)** | La cantidad que deberías separar para ahorro. |
+| **🐜 Hormiga** | Cuánto se te ha ido en gastos hormiga en el periodo. |
+| **¿Cómo van mis finanzas?** | Atajo para abrir el Coach. |
+| **Para ti** | Avisos personalizados: tu hormiga más cara al año, un presupuesto cerca del límite, una suscripción que cobra pronto o que no usas, tu detonante emocional. Toca uno para ir a la pantalla donde lo resuelves. |
+| **En qué se va tu quincena** | Tus categorías con más gasto. |
+| **Recientes** → **Ver todo** | Tus últimos gastos y un atajo a la pestaña Gastos. |
 
-### Diagrama
+</details>
+
+<details>
+<summary><b>≡ Gastos: todos tus movimientos</b></summary>
+
+<br>
+
+- Arriba eliges entre **Gastos** e **Ingresos**.
+- En **Gastos** filtras por periodo (**Quincena / Mes / Todo**), por categoría y por tipo (**Necesarios / Gustos**). Verás los totales: **Total, Necesario y Gustos**.
+- Para borrar un gasto, toca el ícono de eliminar y confirma.
+- En **Ingresos** registras lo que cobras: **Monto, Fecha y Fuente**. Si tu ingreso es variable, estos registros son la base de tu presupuesto.
+
+</details>
+
+<details>
+<summary><b>🐜 Hormiga: el detector</b></summary>
+
+<br>
+
 ```
- Navegador (React)
-     │  Cognito (login con código por correo)
-     ▼
- AppSync (GraphQL, autorización userPool)
-     ├── Modelos Profile, Expense, Income, Budget, Goal,
-     │   Recurring, Wish  ──►  DynamoDB (allow.owner)
-     └── askCoach (query, allow.authenticated)
-              │
-              ▼
-        Lambda financial-coach (Node 22, 1 GB, 30 s)
-              │  Strands agent
-              ├── tool: obtener_resumen_financiero   ─┐ cálculos deterministas
-              └── tool: proyectar_escenarios          ─┘ (analysis.ts)
-              │
-              ▼
-        Amazon Bedrock  (us.amazon.nova-lite-v1:0)
+┌──────────── Gastos hormiga ────────────┐
+│  Tus hormigas cuestan al año            │
+│           $ 24,300                      │
+│  En 10 años: $ ...                      │
+│                                         │
+│  Tus hábitos (últimos 30 días)          │
+│  ☕ Starbucks   12 veces   $2,040 /año… │
+│  🏪 OXXO         8 veces   $  960 /año… │
+└─────────────────────────────────────────┘
 ```
 
-### Estructura del repositorio
+- La app agrupa tus gastos hormiga de los **últimos 30 días** por lugar (o por categoría) y te muestra los que más dinero se llevan.
+- Un hábito aparece si se repite **3 o más veces**, o **2 veces** si es de una categoría típica de hormiga (café, antojos, delivery, tiendita, apps, ocio).
+- Para cada uno ves cuántas veces, cuánto suma, **cuánto cuesta al año** y **cuántas horas de trabajo** representa.
+- Al final hay una guía rápida: preparar en casa lo que más repites, cuidar el delivery, pagar gustos con efectivo o débito, la regla de 48 h y quitar tarjetas guardadas de las apps.
+
+</details>
+
+<details>
+<summary><b>◔ Plan: presupuestos y metas</b></summary>
+
+<br>
+
+**Presupuestos**
+1. Elige una categoría y escribe su **Límite mensual**.
+2. Toca **Guardar límite**. La barra de cada presupuesto se llena con lo que gastas en el mes.
+3. La app te avisa al llegar al **80%** y al **100%**.
+
+> [!TIP]
+> Empieza por tus hormigas: café, antojos y delivery.
+
+**Metas de ahorro**
+- Si aún no tienes, verás la sugerencia **Fondo de emergencia** (equivale a 3 meses de tus gastos). Tócala para crearlo.
+- **Nueva meta**: Nombre, Monto objetivo y Fecha (opcional).
+- **＋ Abonar**: registra lo que vas ahorrando. La barra muestra tu avance.
+- Si pusiste fecha, la app calcula cuánto necesitas ahorrar al mes para llegar.
+
+</details>
+
+<details>
+<summary><b>••• Más: suscripciones, antojos, calculadoras y perfil</b></summary>
+
+<br>
+
+Arriba eliges una de las cuatro secciones:
+
+| Sección | Cómo se usa |
+|---|---|
+| **Suscripciones** | Anota cada servicio con su monto, ciclo (**Mensual / Anual / Semanal**) y **Próximo cobro**. Verás el total que pagas. Toca **La usé** cada vez que la uses: si pasan más de 30 días sin uso, aparece **💤 Sin uso hace N días**. Si la das de baja, toca **Cancelé**. |
+| **Antojos** (regla de 48 h) | Cuando te den ganas de comprar algo por impulso, escribe **¿Qué quieres comprar?** y su **Precio**. Durante 48 horas verás **⏳ N h**; después aparece **Listo para decidir** y puedes comprarlo. Si ya no lo quieres, toca **Ya no lo quiero 💪** y ese dinero se suma a **Dinero que decidiste no gastar**. |
+| **Calculadoras** | **💳 La trampa del pago mínimo**: escribe tu Deuda, Tasa anual % y un Pago fijo, y compara cuánto pagas en total. **📈 ¿Tu dinero crece o se encoge?**: compara el rendimiento de tu ahorro con la inflación. |
+| **Perfil** | Cambia los datos de la configuración inicial y toca **Guardar cambios**. Aquí está **Cerrar sesión**. |
+
+</details>
+
+---
+
+### ✨ El Coach con IA
+
+Toca el botón **✨ Coach** (o la tarjeta **¿Cómo van mis finanzas?** en Inicio). Puedes elegir una pregunta rápida o escribir la tuya:
+
+| Pregunta rápida | Qué obtienes |
+|---|---|
+| 📊 ¿Cómo van mis finanzas? | Diagnóstico general |
+| 🔮 ¿Qué pasa con mi dinero si sigo así 12 meses? | Proyección a un año |
+| ✂️ ¿Dónde puedo recortar sin sufrir? | Recortes pequeños y concretos |
+| 🎯 ¿Cuándo llego a mi meta de ahorro? | Tiempo estimado para tu meta |
+
+La respuesta llega como una tarjeta:
+
 ```
-amplify/
-  backend.ts                 # Define auth, data y la Lambda; restringe permisos de Bedrock
-  auth/resource.ts           # Login por correo con código
-  data/resource.ts           # Esquema GraphQL y autorización por dueño
-  functions/financial-coach/
-    resource.ts              # Lambda: runtime, timeout, memoria, COACH_MODEL_ID
-    handler.ts               # Agente, prompt del sistema, mapeo de errores
-    analysis.ts              # Cálculos: promedios, periodos, hábitos, proyecciones
-src/
-  App.tsx                    # Shell, autenticación, onboarding, registro de gasto
-  store.ts                   # Cliente de datos y suscripciones en tiempo real
-  lib.ts                     # Categorías, formato de moneda y fechas
-  coach.ts                   # Arma el snapshot y llama a askCoach
-  views/                     # Home, Expenses, Ants, Plan, More, Coach
-amplify.yml                  # Pipeline de despliegue de Amplify Hosting
+┌──────────────────── ✨ Coach Hormiga ────────────────────┐
+│  🟢 BIEN · "Vas bien, pero el café se come tu ahorro"    │ ← estado + titular
+│  Resumen con tus cifras reales                           │
+│  ✅ Logros     ⚠️ Alertas                                │
+│  💡 Consejos para esta semana (acción → impacto)         │
+│  📈 Si mejoras: $…        📉 Si empeoras: $…             │
+└──────────────────────────────────────────────────────────┘
 ```
+
+El estado puede ser **excelente**, **bien**, **atención** o **riesgo**. El Coach recuerda sus consejos anteriores y en la siguiente consulta te dice si mejoraste.
+
+> [!IMPORTANT]
+> El Coach da **orientación general, no asesoría financiera profesional**. Las calculadoras son estimaciones.
+
+---
+
+## 🗓️ Cómo aprovecharla en tu día a día
+
+| Cuándo | Qué hacer | Tiempo |
+|---|---|---|
+| **Cada vez que gastes** | Toca **＋** y elige un favorito. Si tienes un momento, marca cómo te sentías. | 5 segundos |
+| **Cuando te dé un antojo** | Mándalo a **Más → Antojos** y espera 48 h antes de decidir. | 10 segundos |
+| **Cada semana** | Revisa **🐜 Hormiga** y elige un solo hábito para reducir. | 2 minutos |
+| **Cada quincena (al cobrar)** | Registra tu ingreso, abona a tus metas con **＋ Abonar** y pregúntale al Coach **¿Cómo van mis finanzas?** | 5 minutos |
+| **Cada mes** | Revisa tus **Suscripciones** y cancela las que tengan 💤. Ajusta tus **Presupuestos**. | 5 minutos |
+
+**La regla de oro:** no intentes recortar todo a la vez. Elige **una hormiga por semana**. El Coach te dirá si funcionó.
+
+---
+
+## 🚀 Despliega tu propia copia con AWS Amplify
+
+Cada persona despliega la app **en su propia cuenta de AWS**: los usuarios, los datos y el costo del Coach quedan en tu cuenta.
 
 ### Requisitos
-- Node.js **≥ 20.20** y npm **≥ 10.8** (ver `engines` en `package.json`).
-- Cuenta de AWS con acceso a Amazon Bedrock en **us-east-2** y el modelo Nova Lite habilitado.
-- Credenciales de AWS configuradas en tu terminal (`aws configure` o `aws sso login`).
 
-### Ejecutar en local
-```bash
-npm install
-npx ampx sandbox --once   # crea el backend en tu cuenta y genera amplify_outputs.json
-npm run dev               # frontend en http://localhost:5173
+- Una [cuenta de AWS](https://aws.amazon.com/).
+- Una cuenta de GitHub.
+- Un proveedor de IA para el Coach: **Amazon Bedrock** (por defecto, sin claves) u otro de la [tabla de proveedores](#-elige-el-proveedor-de-ia-del-coach).
+
+```mermaid
+flowchart LR
+    A[Fork en GitHub] --> B[Crear app en<br/>AWS Amplify]
+    B --> C[Variables de entorno<br/>del Coach]
+    C --> D[Amplify construye<br/>backend + frontend]
+    D --> E[Tu app en<br/>*.amplifyapp.com]
 ```
-Para desarrollo continuo, usa `npx ampx sandbox` (sin `--once`): vigila cambios en `amplify/` y redespliega solo.
 
-### Desplegar a producción
-Hay dos caminos:
-1. **Conectar el repositorio a Amplify Hosting** (recomendado): en la consola de Amplify, *Crear app → GitHub*. El archivo `amplify.yml` despliega backend (`ampx pipeline-deploy`) y frontend (`npm run build`) en cada push.
-2. **Manual:** `npx ampx pipeline-deploy` para el backend y subir `dist/` como zip en Amplify Hosting.
+### Opción A · Desde la consola de Amplify (recomendada)
 
-### Configuración importante
-- **Modelo del Coach:** variable `COACH_MODEL_ID` en `amplify/functions/financial-coach/resource.ts` (por defecto `us.amazon.nova-lite-v1:0`). Cambiar de modelo no requiere tocar el código, pero el rol IAM sólo permite familias `amazon.nova-*` y `anthropic.claude-*` (`amplify/backend.ts`).
-- **Región de Bedrock:** la Lambda usa `AWS_REGION` (us-east-2 por defecto) con perfiles de inferencia `us.*`.
-- **Cuotas de Bedrock:** las cuentas nuevas pueden tener cuota **0** para invocar modelos. Si ves el error de límite diario en el Coach, revisa Service Quotas → Bedrock antes de depurar el código.
-- **Archivos ignorados por git:** `amplify_outputs.json` (configuración de tu backend), `node_modules/`, `dist/` y `.amplify/`. No los subas.
+1. **Haz fork** de este repositorio en tu cuenta de GitHub.
+2. En la [consola de AWS Amplify](https://console.aws.amazon.com/amplify/), elige la región y toca **Create new app** → **GitHub**.
+   > Si vas a usar **Bedrock**, elige **us-east-1**, **us-east-2** o **us-west-2**: el Coach usa perfiles de inferencia de EE. UU. (`us.*`).
+3. Autoriza a Amplify, elige tu fork y la rama `main`. Amplify detecta el archivo `amplify.yml` del repositorio, que despliega el backend y el frontend.
+4. En **Advanced settings → Environment variables**, agrega las variables del Coach (ver [proveedores](#-elige-el-proveedor-de-ia-del-coach)). Si usarás Bedrock con el modelo por defecto, puedes omitir este paso.
+5. Toca **Save and deploy**. Cuando termine, abre la URL `https://main.<id>.amplifyapp.com`.
 
-### Pruebas y calidad
+**Para cambiar de proveedor después:** ve a tu app → **Hosting → Environment variables**, edita las variables y vuelve a desplegar (**Redeploy this version**). Las variables se leen al desplegar, no en cada pregunta.
+
+### Opción B · Con la CLI de Amplify desde tu computadora (usa `.env`)
+
+Necesitas Node.js **20.20 o mayor** y credenciales de AWS configuradas en tu terminal (`aws configure` o `aws sso login`).
+
 ```bash
-npm run lint    # ESLint con cero advertencias permitidas
-npm run build   # tsc + vite build
-```
-El cálculo de la lógica financiera vive en `analysis.ts`, separado de la IA, para que sea determinista y fácil de probar.
+# 1. Clona tu fork e instala dependencias
+git clone https://github.com/<tu-usuario>/gastos-hormiga-app.git
+cd gastos-hormiga-app
+npm ci
 
-### Ideas para evolucionar
-- Pruebas unitarias para `analysis.ts` (promedios, periodos y hábitos).
-- Exportar los datos del usuario a CSV.
-- Notificaciones por correo cuando se alcance un presupuesto.
+# 2. Configura el Coach
+cp .env.example .env        # edita .env con tu proveedor y tus claves
+
+# 3. Despliega tu backend personal en AWS (Cognito, AppSync, DynamoDB, Lambda)
+npx ampx sandbox --once     # genera amplify_outputs.json
+
+# 4. Abre la app
+npm run dev                 # http://localhost:5173
+```
+
+Para borrar ese backend: `npx ampx sandbox delete`.
+
+> [!WARNING]
+> **Nunca subas tu `.env` a GitHub.** Ya está incluido en `.gitignore`. Si una clave se filtra, revócala en el panel de tu proveedor y genera otra.
+
+### Recomendaciones para tu despliegue
+
+- **Crea una alerta de presupuesto** en [AWS Budgets](https://console.aws.amazon.com/billing/home#/budgets) para que te avise si el gasto sube.
+- **El registro es abierto:** cualquiera con la URL de tu app puede crear una cuenta y usar el Coach con **tus** créditos de IA. Si la app es sólo para ti o tu familia, desactiva el auto-registro (*self-registration*) en la configuración de tu user pool de Amazon Cognito y crea las cuentas tú.
+- Para borrar todo: en la consola de Amplify, abre tu app → **App settings → General settings → Delete app**.
 
 ---
 
-## Licencia
-El código base proviene de la plantilla de AWS Amplify (MIT-0). Consulta el archivo `LICENSE`.
+## 🤖 Elige el proveedor de IA del Coach
+
+El Coach puede usar **Amazon Bedrock** (por defecto) o cualquier API **compatible con OpenAI**. Se configura con variables de entorno: en el archivo `.env` (Opción B) o en la consola de Amplify (Opción A). Revisa [`.env.example`](.env.example) para ver todas.
+
+| Proveedor | `COACH_PROVIDER` | Variables obligatorias | Notas |
+|---|---|---|---|
+| **Amazon Bedrock** | `bedrock` *(por defecto)* | Ninguna | Sin claves: usa el rol IAM de la Lambda. Modelo por defecto: `us.amazon.nova-lite-v1:0`. Activa el modelo en la consola de Bedrock de tu cuenta. |
+| **OpenRouter** | `openrouter` | `OPENROUTER_API_KEY`, `COACH_MODEL` | Acceso a cientos de modelos con una sola clave. |
+| **Google AI Studio (Gemini)** | `gemini` | `GEMINI_API_KEY`, `COACH_MODEL` | Usa el endpoint compatible con OpenAI de Gemini. |
+| **Ollama** | `ollama` | `OLLAMA_BASE_URL`, `COACH_MODEL` | La URL debe ser accesible desde internet y terminar en `/v1`. `localhost` no funciona porque el Coach corre en AWS Lambda. |
+| **OpenAI o compatible** | `openai` | `OPENAI_API_KEY`, `COACH_MODEL` | Con `OPENAI_BASE_URL` puedes apuntar a otra API compatible (Groq, DeepSeek, Together…). |
+
+Ejemplo de `.env` con OpenRouter:
+
+```dotenv
+COACH_PROVIDER=openrouter
+COACH_MODEL=<id-del-modelo-en-openrouter>
+OPENROUTER_API_KEY=<tu-clave>
+```
+
+> [!IMPORTANT]
+> El modelo que elijas debe soportar **herramientas (tool calling)**: el Coach las usa para obtener tus cifras. Si falta una variable, el Coach mostrará "El Coach no está configurado todavía" y el log de la Lambda dirá qué variable falta (nunca su valor).
+
+**Seguridad de las claves:** viven sólo en el servidor (variables de entorno de la Lambda). El navegador nunca las recibe.
+
+---
+
+## 🏗️ Arquitectura
+
+### Stack
+
+| Capa | Tecnología |
+|---|---|
+| Frontend | React 18, Vite, TypeScript, `@aws-amplify/ui-react` |
+| Backend como código | AWS Amplify Gen 2 (TypeScript sobre AWS CDK) |
+| Autenticación | Amazon Cognito: correo + contraseña, verificación por código |
+| API y datos | AWS AppSync (GraphQL en tiempo real) + Amazon DynamoDB |
+| Coach con IA | AWS Lambda (Node 22) + [Strands Agents](https://strandsagents.com) + Amazon Bedrock u otro proveedor compatible con OpenAI |
+| Validación | Zod |
+| Hosting y CI/CD | Amplify Hosting (`amplify.yml`) |
+
+### Cómo fluyen los datos
+
+```mermaid
+flowchart TB
+    U["👤 Navegador (React)"] -->|correo + contraseña| C[Amazon Cognito]
+    U -->|GraphQL con token| A[AWS AppSync]
+    A -->|"Profile, Expense, Income, Budget,<br/>Goal, Recurring, Wish"| D[(Amazon DynamoDB<br/>autorización por dueño)]
+    A -->|"askCoach(question, snapshot)"| L[Lambda financial-coach]
+    L --> T1["🔧 obtener_resumen_financiero"]
+    L --> T2["🔧 proyectar_escenarios"]
+    L -->|COACH_PROVIDER| M{Proveedor de IA}
+    M --> B[Amazon Bedrock]
+    M --> O["OpenRouter · Gemini · Ollama · OpenAI"]
+```
+
+### Cómo piensa el Coach
+
+```mermaid
+sequenceDiagram
+    participant App as App (navegador)
+    participant L as Lambda del Coach
+    participant IA as Modelo de IA
+    App->>L: pregunta + foto de TUS datos
+    L->>L: valida la foto con Zod (tipos y tamaños)
+    L->>IA: prompt del sistema + pregunta
+    IA->>L: pide obtener_resumen_financiero
+    L-->>IA: cifras calculadas en analysis.ts
+    IA->>L: pide proyectar_escenarios (12 meses)
+    L-->>IA: escenarios actual / bueno / malo
+    IA->>L: respuesta en JSON estructurado
+    L->>App: tarjeta: estado, logros, alertas, consejos, proyecciones
+```
+
+**El modelo no hace cuentas.** Todos los números salen de funciones deterministas (`analysis.ts`); la IA sólo interpreta y aconseja. Así las cifras son consistentes y verificables, sin importar el proveedor.
+
+### Seguridad y privacidad
+
+- **Autorización por dueño:** cada modelo de datos usa `allow.owner()`. Un usuario no puede leer ni modificar registros de otro.
+- **Sin acceso de invitados:** el Identity Pool no permite usuarios no autenticados.
+- **El Coach sólo ve tus datos:** la app envía una foto de *tus* registros; la Lambda no consulta la base de datos.
+- **Permisos mínimos en Bedrock:** el rol de la Lambda sólo puede invocar modelos `amazon.nova-*` y `anthropic.claude-*`.
+- **Claves fuera del código:** las claves de proveedores van en `.env` (ignorado por git) o en la consola de Amplify.
+
+### Estructura del proyecto
+
+```
+gastos-hormiga-app/
+├── amplify/                         # Backend como código (Amplify Gen 2)
+│   ├── backend.ts                   # Une auth + data + Lambda; permisos de Bedrock
+│   ├── auth/resource.ts             # Cognito: login con correo y código de verificación
+│   ├── data/resource.ts             # Esquema GraphQL y reglas de autorización
+│   └── functions/financial-coach/
+│       ├── resource.ts              # Config de la Lambda; lee .env / variables de entorno
+│       ├── handler.ts               # Agente, proveedor de IA y mensajes de error
+│       └── analysis.ts              # Cálculos deterministas (promedios, hábitos, proyecciones)
+├── src/
+│   ├── App.tsx                      # Login, configuración inicial, pestañas, registro de gasto
+│   ├── store.ts                     # Cliente de datos con sincronización en tiempo real
+│   ├── coach.ts                     # Arma la foto de datos y llama a askCoach
+│   ├── lib.ts                       # Categorías, emociones, formato de moneda y fechas
+│   └── views/                       # Home, Expenses, Ants, Plan, More, Coach
+├── .env.example                     # Plantilla de variables del Coach
+└── amplify.yml                      # Pipeline de Amplify Hosting
+```
+
+### Scripts
+
+| Comando | Qué hace |
+|---|---|
+| `npm run dev` | Frontend en modo desarrollo (requiere `amplify_outputs.json`) |
+| `npm run build` | Revisa tipos (`tsc`) y compila a `dist/` |
+| `npm run lint` | ESLint sin advertencias permitidas |
+| `npx ampx sandbox` | Backend personal en tu cuenta de AWS, se actualiza con cada cambio |
+
+---
+
+## 📄 Licencia
+
+El código base proviene de la plantilla de AWS Amplify, publicada bajo licencia **MIT-0**. Consulta [`LICENSE`](LICENSE).
+
+<div align="center">
+<sub>Hecho con 🐜 por <a href="https://github.com/AbrahamAldev">Abraham Alonso</a></sub>
+</div>
